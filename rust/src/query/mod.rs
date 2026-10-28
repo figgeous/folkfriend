@@ -8,6 +8,7 @@ use crate::index::TuneIndex;
 use fnv::FnvHashSet as HashSet;
 use serde::Serialize;
 use std::collections::HashMap;
+use rayon::prelude::*;
 use std::fmt;
 
 pub struct QueryEngine {
@@ -83,15 +84,16 @@ impl QueryEngine {
                 // Second pass: slow, but accurate. Good for refining a shortlist of candidates.
                 //
                 // let nowf = Instant::now();
-                let mut second_search: Vec<(SettingID, f32)> = Vec::new();
-                for (setting_id, _) in &first_search {
-                    let score = nw::needleman_wunsch(
-                        &contour,
-                        &tune_index.settings[setting_id].contour,
-                    );
-                    second_search.push((setting_id.clone(), score));
-                }
-                let mut sorted_rankings: Vec<_> = second_search.into_iter().collect();
+                let mut sorted_rankings: Vec<(SettingID, f32)> = first_search
+                    .par_iter()
+                    .map(|(setting_id, _)| {
+                        let score = nw::needleman_wunsch(
+                            &contour,
+                            &tune_index.settings[setting_id].contour,
+                        );
+                        (setting_id.clone(), score)
+                    })
+                    .collect();
                 sorted_rankings.sort_by(|x, y| y.1.partial_cmp(&x.1).unwrap());
                 let mut results: TranscriptionQueryResults = Vec::new();
 
