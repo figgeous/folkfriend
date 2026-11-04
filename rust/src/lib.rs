@@ -67,6 +67,12 @@ impl FolkFriend {
         self.feature_extractor.feed_window(pcm_window);
     }
 
+    /// Replace the extracted features with frames computed elsewhere (one energy per MIDI
+    /// note per frame, at the extractor's frame rate), so another front-end can use the decoder.
+    pub fn feed_features(&mut self, frames: Vec<feature::types::Frame>) {
+        self.feature_extractor.features = frames;
+    }
+
     pub fn flush_pcm_buffer(&mut self) {
         self.feature_extractor.flush();
     }
